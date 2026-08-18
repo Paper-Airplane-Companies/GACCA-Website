@@ -7,6 +7,9 @@ const categoryLabels = {
   Honorary: 'Honorary / Education Partner'
 };
 
+let activeCategory = 'All';
+let searchTerm = '';
+
 async function loadMembers() {
   const count = document.getElementById('memberCount');
   const status = document.getElementById('memberStatus');
@@ -22,10 +25,10 @@ async function loadMembers() {
     if (!response.ok) throw new Error('Unable to load members');
     const members = await response.json();
     window.gaccaMembers = members;
-    renderMembers(members);
-    if (count) count.textContent = `${members.length} active members and partners`;
+    applyDirectoryFilters();
     if (status) status.textContent = '';
   } catch (error) {
+    if (count) count.textContent = '';
     if (status) status.textContent = 'Member directory is temporarily unavailable.';
     console.error(error);
   }
@@ -36,7 +39,7 @@ function renderMembers(members) {
   if (!grid) return;
 
   if (!members.length) {
-    grid.innerHTML = '<p>No members found.</p>';
+    grid.innerHTML = '<div class="directory-empty"><strong>No members found.</strong><p>Try another company name or choose a different member category.</p></div>';
     return;
   }
 
@@ -45,23 +48,51 @@ function renderMembers(members) {
       <span class="member-category">${categoryLabels[member.category] || escapeHtml(member.category)}</span>
       <h3>${escapeHtml(member.name)}</h3>
       <p>${member.category === 'Contractor'
-        ? 'Local HVAC contractor member serving our regional trade and community.'
+        ? 'GACCA Contractor Member supporting the HVAC trade and communities across our region.'
         : member.category === 'Associate'
-          ? 'Industry partner supporting contractors, the workforce and the HVAC trade.'
+          ? 'GACCA Industry Partner supporting contractors, workforce development and the HVAC trade.'
           : 'Education, community or honorary partner supporting GACCA and the industry.'}</p>
       ${member.website_url
-        ? `<a class="member-link" href="${escapeAttribute(member.website_url)}" target="_blank" rel="noopener noreferrer">Visit Website</a>`
+        ? `<a class="member-link" href="${escapeAttribute(member.website_url)}" target="_blank" rel="noopener noreferrer">Visit Company Website</a>`
         : '<span class="member-link member-link-muted">Website confirmation pending</span>'}
     </article>
   `).join('');
 }
 
-function filterMembers(category, button) {
+function applyDirectoryFilters() {
   const members = window.gaccaMembers || [];
-  const filtered = category === 'All' ? members : members.filter(member => member.category === category);
+  const filtered = members.filter(member => {
+    const categoryMatch = activeCategory === 'All' || member.category === activeCategory;
+    const searchMatch = !searchTerm || member.name.toLowerCase().includes(searchTerm);
+    return categoryMatch && searchMatch;
+  });
+
   renderMembers(filtered);
+  updateCount(filtered.length, members.length);
+}
+
+function updateCount(visible, total) {
+  const count = document.getElementById('memberCount');
+  if (!count) return;
+  count.textContent = visible === total
+    ? `${total} active GACCA members and partners`
+    : `${visible} of ${total} active GACCA members and partners shown`;
+}
+
+function filterMembers(category, button) {
+  activeCategory = category;
   document.querySelectorAll('.directory-filter button').forEach(btn => btn.classList.remove('active'));
   if (button) button.classList.add('active');
+  applyDirectoryFilters();
+}
+
+function setupSearch() {
+  const search = document.getElementById('memberSearch');
+  if (!search) return;
+  search.addEventListener('input', event => {
+    searchTerm = event.target.value.trim().toLowerCase();
+    applyDirectoryFilters();
+  });
 }
 
 function escapeHtml(value) {
@@ -69,4 +100,7 @@ function escapeHtml(value) {
 }
 function escapeAttribute(value) { return escapeHtml(value); }
 
-document.addEventListener('DOMContentLoaded', loadMembers);
+document.addEventListener('DOMContentLoaded', () => {
+  setupSearch();
+  loadMembers();
+});
