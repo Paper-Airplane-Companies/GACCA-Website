@@ -58,9 +58,7 @@ async function submitJob(form) {
       body: JSON.stringify(record)
     });
 
-    if (!response.ok) {
-      throw new Error(await response.text());
-    }
+    if (!response.ok) throw new Error(await response.text());
 
     form.reset();
     message.className = 'form-message success';
@@ -79,6 +77,7 @@ function renderJobs(jobs) {
   const container = document.querySelector('#jobs-list');
   const count = document.querySelector('#jobs-count');
   if (!container) return;
+  container.setAttribute('aria-busy', 'false');
 
   if (count) count.textContent = `${jobs.length} active ${jobs.length === 1 ? 'opportunity' : 'opportunities'}`;
 
@@ -87,7 +86,7 @@ function renderJobs(jobs) {
       <article class="job-card placeholder">
         <span class="job-type">GACCA Careers</span>
         <h3>No approved openings are posted right now.</h3>
-        <p>Check back soon. GACCA member companies choose the positions they want us to promote through this careers hub.</p>
+        <p>GACCA member companies choose the positions they want us to promote through this careers hub. New approved openings will appear here.</p>
       </article>`;
     return;
   }
@@ -111,7 +110,9 @@ function renderJobs(jobs) {
 
 async function loadJobs() {
   const container = document.querySelector('#jobs-list');
+  const count = document.querySelector('#jobs-count');
   if (!container) return;
+  container.setAttribute('aria-busy', 'true');
   container.innerHTML = '<div class="jobs-loading">Loading current opportunities...</div>';
 
   try {
@@ -126,6 +127,8 @@ async function loadJobs() {
     renderJobs(jobs);
   } catch (error) {
     console.error(error);
+    container.setAttribute('aria-busy', 'false');
+    if (count) count.textContent = 'Current opportunities unavailable';
     container.innerHTML = '<div class="form-message error">We could not load current jobs. Please refresh the page or try again later.</div>';
   }
 }
