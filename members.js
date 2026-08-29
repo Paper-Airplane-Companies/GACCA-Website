@@ -43,7 +43,9 @@ function renderMembers(members) {
     return;
   }
 
-  grid.innerHTML = members.map(member => `
+  grid.innerHTML = members.map(member => {
+    const website = safeUrl(member.website_url);
+    return `
     <article class="member-card" data-category="${escapeAttribute(member.category)}">
       <span class="member-category">${categoryLabels[member.category] || escapeHtml(member.category)}</span>
       <h3>${escapeHtml(member.name)}</h3>
@@ -52,11 +54,11 @@ function renderMembers(members) {
         : member.category === 'Associate'
           ? 'GACCA Industry Partner supporting contractors, workforce development and the HVAC trade.'
           : 'Education, community or honorary partner supporting GACCA and the industry.'}</p>
-      ${member.website_url
-        ? `<a class="member-link" href="${escapeAttribute(member.website_url)}" target="_blank" rel="noopener noreferrer">Visit Company Website</a>`
+      ${website !== '#'
+        ? `<a class="member-link" href="${escapeAttribute(website)}" target="_blank" rel="noopener noreferrer">Visit Company Website</a>`
         : '<span class="member-link member-link-muted">Website confirmation pending</span>'}
-    </article>
-  `).join('');
+    </article>`;
+  }).join('');
 }
 
 function applyDirectoryFilters() {
@@ -96,9 +98,17 @@ function setupSearch() {
 }
 
 function escapeHtml(value) {
-  return String(value).replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[char]));
+  return String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[char]));
 }
 function escapeAttribute(value) { return escapeHtml(value); }
+function safeUrl(value = '') {
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) ? url.href : '#';
+  } catch {
+    return '#';
+  }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   setupSearch();
